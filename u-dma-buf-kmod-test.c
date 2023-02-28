@@ -58,6 +58,9 @@ static int       buffer_size = 4096;
 module_param(    buffer_size, int, S_IRUGO);
 MODULE_PARM_DESC(buffer_size , "udmabuf install/uninstall infomation enable");
 
+#ifndef PLATFORM_DEVID_AUTO
+#define PLATFORM_DEVID_AUTO (-2)
+#endif
 
 /**
  * DOC: u-dma-buf Device In-Kernel Interface

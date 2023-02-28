@@ -79,6 +79,10 @@ MODULE_LICENSE("Dual BSD/GPL");
 #define IN_KERNEL_FUNCTIONS 0
 #endif
 
+#ifndef SIZE_MAX
+#define SIZE_MAX ((size_t)-1)
+#endif
+
 #if     (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0))
 #include <linux/dma-map-ops.h>
 #define IS_DMA_COHERENT(dev) dev_is_dma_coherent(dev)
@@ -936,9 +940,15 @@ static struct udmabuf_device_data* udmabuf_device_create(const char* name, struc
          * When dma_set_mask_and_coherent() fails, it is forcefuly setting the dma-mask value.
          */
         if (*this->dma_dev->dma_mask == 0) {
-            int retval = dma_set_mask_and_coherent(this->dma_dev, DMA_BIT_MASK(dma_mask_bit));
+            int retval = dma_set_mask(this->dma_dev, DMA_BIT_MASK(dma_mask_bit));
             if (retval != 0) {
-                printk(KERN_WARNING "dma_set_mask_and_coherent(DMA_BIT_MASK(%d)) failed. return=(%d)\n", dma_mask_bit, retval);
+                printk(KERN_WARNING "dma_set_mask(DMA_BIT_MASK(%d)) failed. return=(%d)\n", dma_mask_bit, retval);
+                *this->dma_dev->dma_mask         = DMA_BIT_MASK(dma_mask_bit);
+                this->dma_dev->coherent_dma_mask = DMA_BIT_MASK(dma_mask_bit);
+            }
+            retval = dma_set_coherent_mask(this->dma_dev, DMA_BIT_MASK(dma_mask_bit));
+            if (retval != 0) {
+                printk(KERN_WARNING "dma_set_coherent_mask(DMA_BIT_MASK(%d)) failed. return=(%d)\n", dma_mask_bit, retval);
                 *this->dma_dev->dma_mask         = DMA_BIT_MASK(dma_mask_bit);
                 this->dma_dev->coherent_dma_mask = DMA_BIT_MASK(dma_mask_bit);
             }
@@ -1594,9 +1604,16 @@ static int udmabuf_device_probe(struct device *dev)
             dev_err(dev, "invalid dma-mask property value=%d\n", u32_value);
             goto failed_with_unlock;
         }
-        retval = dma_set_mask_and_coherent(dev, DMA_BIT_MASK(u32_value));
+        retval = dma_set_mask(dev, DMA_BIT_MASK(u32_value));
         if (retval != 0) {
-            dev_info(dev, "dma_set_mask_and_coherent(DMA_BIT_MASK(%d)) failed. return=%d\n", u32_value, retval);
+            dev_info(dev, "dma_set_mask(DMA_BIT_MASK(%d)) failed. return=%d\n", u32_value, retval);
+            retval = 0;
+            *dev->dma_mask         = DMA_BIT_MASK(u32_value);
+            dev->coherent_dma_mask = DMA_BIT_MASK(u32_value);
+        }
+        retval = dma_set_coherent_mask(dev, DMA_BIT_MASK(u32_value));
+        if (retval != 0) {
+            dev_info(dev, "dma_set_coherent_mask(DMA_BIT_MASK(%d)) failed. return=%d\n", u32_value, retval);
             retval = 0;
             *dev->dma_mask         = DMA_BIT_MASK(u32_value);
             dev->coherent_dma_mask = DMA_BIT_MASK(u32_value);

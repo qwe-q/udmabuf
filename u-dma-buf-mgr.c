@@ -54,6 +54,10 @@ MODULE_LICENSE("Dual BSD/GPL");
 #define DRIVER_VERSION     "4.0.0"
 #define DRIVER_NAME        "u-dma-buf-mgr"
 
+#ifndef PLATFORM_DEVID_AUTO
+#define PLATFORM_DEVID_AUTO (-2)
+#endif
+
 /**
  * DOC: u-dma-buf Device In-Kernel Interface
  *
